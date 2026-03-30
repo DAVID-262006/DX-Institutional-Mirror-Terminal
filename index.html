@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>DX | Institutional Mirror Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <canvas id="bg-canvas"></canvas>
+
+    <header class="w-full py-5 px-6 sm:px-12 flex items-center justify-between sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <div class="logo-circle">
+                <span class="shimmer-text font-black text-2xl">DX</span>
+            </div>
+            <h1 class="hidden sm:block text-[10px] font-bold tracking-[0.4em] uppercase text-[#988686]">Institutional Mirror</h1>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="refreshGlobal" class="btn-action p-2.5" title="Refresh Live Data">
+                <svg id="refreshIcon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button id="connectBtn" class="btn-stealth px-6 py-3 text-[10px]">Connect Terminal</button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-[1400px] mx-auto w-full px-6 py-12">
+        <div class="mb-12 flex flex-col md:flex-row justify-between items-end gap-8">
+            <div>
+                <h2 class="text-6xl font-black mb-4 tracking-tighter">India <span class="opacity-20 text-white">Nexus</span></h2>
+                <p class="text-[#988686] font-mono text-[10px] tracking-widest uppercase">Mirroring 32 Central Banking Nodes</p>
+            </div>
+            <div class="w-full md:w-80">
+                <input id="bankSearch" placeholder="Filter Institutions..." class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 outline-none focus:border-white/30 transition-all font-mono text-sm" />
+            </div>
+        </div>
+
+        <div id="bankGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </main>
+
+    <div id="analyticsModal" class="fixed inset-0 hidden z-[100] p-4 md:p-10">
+        <div id="modalBackdrop" class="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
+        <div id="modalContent" class="relative w-full max-w-6xl mx-auto mirror-card h-full flex flex-col overflow-hidden bg-black/60 border-white/10 transition-all duration-500 opacity-0 scale-95">
+            
+            <div class="p-6 md:p-8 border-b border-white/5 flex justify-between items-center">
+                <div>
+                    <h3 id="modalBankName" class="text-3xl font-black tracking-tighter text-white"></h3>
+                    <p class="text-[10px] font-mono text-[#988686] tracking-widest mt-1">REAL-TIME LIQUIDITY STREAM</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="downloadReport" class="btn-action p-3">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button id="closeModal" class="text-4xl text-[#988686] hover:text-white">&times;</button>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div class="p-6 bg-white/5 rounded-2xl border border-white/5">
+                        <span class="text-[10px] uppercase text-[#988686]">Risk Factor</span>
+                        <p class="text-xl font-bold font-mono mt-1 text-white">MINIMAL</p>
+                    </div>
+                    <div class="p-6 bg-white/5 rounded-2xl border border-white/5">
+                        <span class="text-[10px] uppercase text-[#988686]">24h Delta</span>
+                        <p id="modalVol" class="text-xl font-bold font-mono mt-1"></p>
+                    </div>
+                    <div class="p-6 bg-white/5 rounded-2xl border border-white/5">
+                        <span class="text-[10px] uppercase text-[#988686]">Sovereign Cap</span>
+                        <p id="modalCap" class="text-xl font-bold font-mono mt-1 text-white"></p>
+                    </div>
+                    <div class="flex items-center">
+                        <button id="manualAuditBtn" class="btn-stealth w-full py-4 text-[9px]">Manual Audit</button>
+                    </div>
+                </div>
+
+                <div class="h-[350px] md:h-[480px] w-full bg-black/40 rounded-[32px] p-8 border border-white/5 relative group">
+                    <div class="absolute top-6 right-6 flex gap-2 z-10">
+                        <button class="time-btn btn-action px-5 py-1.5 text-[10px] font-bold" data-range="1H">1H</button>
+                        <button class="time-btn btn-action px-5 py-1.5 text-[10px] font-bold active" data-range="24H">24H</button>
+                        <button class="time-btn btn-action px-5 py-1.5 text-[10px] font-bold" data-range="1W">1W</button>
+                    </div>
+                    <canvas id="detailedChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const INDIAN_BANKS = ["State Bank of India", "HDFC Bank", "ICICI Bank", "Axis Bank", "Kotak Mahindra", "IndusInd Bank", "Bank of Baroda", "Punjab National", "Canara Bank", "Union Bank", "IDBI Bank", "Indian Bank", "Bank of India", "Yes Bank", "Central Bank", "Indian Overseas", "UCO Bank", "Bank of Maharashtra", "IDFC First", "Bandhan Bank", "Federal Bank", "South Indian", "Karnataka Bank", "RBL Bank", "Karur Vysya", "City Union", "Tamilnad Mercantile", "DCB Bank", "CSB Bank", "J&K Bank", "Saraswat", "SVC Bank", "Cosmos Bank"];
+
+    let activeChart = null;
+    const canvas = document.getElementById('bg-canvas');
+    const c = canvas.getContext('2d');
+    let particles = [];
+
+    // --- High Velocity Background Particles ---
+    function initParticles() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        particles = [];
+        for(let i=0; i<120; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.8,
+                vy: (Math.random() - 0.5) * 0.8,
+                size: Math.random() * 1.5
+            });
+        }
+    }
+
+    function animateParticles() {
+        c.clearRect(0, 0, canvas.width, canvas.height);
+        c.fillStyle = 'rgba(209, 208, 208, 0.4)';
+        particles.forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            if(p.x < 0) p.x = canvas.width;
+            if(p.x > canvas.width) p.x = 0;
+            if(p.y < 0) p.y = canvas.height;
+            if(p.y > canvas.height) p.y = 0;
+            c.beginPath();
+            c.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            c.fill();
+        });
+        requestAnimationFrame(animateParticles);
+    }
+
+    // --- UI Logic ---
+    function renderBanks(list) {
+        const grid = document.getElementById('bankGrid');
+        grid.innerHTML = '';
+        list.forEach((name, i) => {
+            const card = document.createElement('div');
+            card.className = 'mirror-card p-8 cursor-pointer group flex flex-col justify-between min-h-[280px]';
+            const price = (Math.random() * 2000 + 100).toFixed(2);
+            const change = (Math.random() * 5 - 2.5).toFixed(2);
+            
+            card.innerHTML = `
+                <div>
+                    <p class="text-[9px] font-mono text-[#988686] mb-8 uppercase tracking-widest">Node ID: ${i+1000}</p>
+                    <h3 class="text-2xl font-black text-white/90 mb-2 tracking-tighter">${name}</h3>
+                    <div class="text-4xl font-mono font-bold tracking-tight">₹${price}</div>
+                </div>
+                <div class="mt-8 flex justify-between items-center">
+                    <span class="text-sm font-bold font-mono ${change >= 0 ? 'text-emerald-500' : 'text-rose-500'}">
+                        ${change >= 0 ? '+' : ''}${change}%
+                    </span>
+                    <button class="btn-stealth px-5 py-2 text-[9px]">Deep Dive</button>
+                </div>
+            `;
+            card.onclick = () => openAnalytics(name, price, change);
+            grid.appendChild(card);
+        });
+    }
+
+    function openAnalytics(name, price, change) {
+        document.getElementById('modalBankName').innerText = name;
+        document.getElementById('modalCap').innerText = "₹" + (Math.random() * 9).toFixed(1) + "T";
+        
+        const volEl = document.getElementById('modalVol');
+        volEl.innerText = (change >= 0 ? '+' : '') + change + "%";
+        volEl.className = `text-xl font-bold font-mono mt-1 ${change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
+        
+        const modal = document.getElementById('analyticsModal');
+        const content = document.getElementById('modalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        setTimeout(() => {
+            content.classList.remove('opacity-0', 'scale-95');
+            content.classList.add('opacity-100', 'scale-100');
+        }, 10);
+
+        initChart();
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('detailedChart').getContext('2d');
+        if(activeChart) activeChart.destroy();
+        
+        const grad = ctx.createLinearGradient(0, 0, 0, 450);
+        grad.addColorStop(0, 'rgba(209, 208, 208, 0.25)');
+        grad.addColorStop(0.5, 'rgba(209, 208, 208, 0.05)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        activeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 40}, (_, i) => `${i}:00`),
+                datasets: [{
+                    data: Array.from({length: 40}, () => Math.random() * 80 + 400),
+                    borderColor: '#D1D0D0',
+                    borderWidth: 2.5,
+                    backgroundColor: grad,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#000',
+                    pointHoverBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, 
+                        ticks: { color: '#5C4E4E', font: { family: 'JetBrains Mono', size: 10 } } 
+                    }
+                },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#111',
+                        titleFont: { size: 10 },
+                        bodyFont: { family: 'JetBrains Mono', size: 14 },
+                        padding: 12,
+                        borderColor: '#5C4E4E',
+                        borderWidth: 1,
+                        displayColors: false
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Interaction Triggers ---
+    document.getElementById('refreshGlobal').onclick = function() {
+        const icon = document.getElementById('refreshIcon');
+        icon.classList.add('animate-rotate');
+        renderBanks(INDIAN_BANKS);
+        setTimeout(() => icon.classList.remove('animate-rotate'), 800);
+    };
+
+    document.getElementById('manualAuditBtn').onclick = function() {
+        this.innerText = "SCANNING NODE...";
+        this.style.color = "#fbbf24";
+        setTimeout(() => {
+            this.innerText = "AUDIT COMPLETE: SECURE";
+            this.style.color = "#10b981";
+            setTimeout(() => {
+                this.innerText = "MANUAL AUDIT";
+                this.style.color = "";
+            }, 2000);
+        }, 1500);
+    };
+
+    document.getElementById('downloadReport').onclick = () => alert("Exporting Mirror Dataset (CSV)...");
+
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Mock dynamic chart update
+            activeChart.data.datasets[0].data = Array.from({length: 40}, () => Math.random() * 150 + 350);
+            activeChart.update('none');
+        };
+    });
+
+    document.getElementById('closeModal').onclick = () => {
+        const content = document.getElementById('modalContent');
+        content.classList.add('opacity-0', 'scale-95');
+        setTimeout(() => document.getElementById('analyticsModal').classList.add('hidden'), 300);
+    };
+
+    document.getElementById('connectBtn').onclick = function() {
+        this.innerText = "LINKING...";
+        setTimeout(() => { this.innerText = "TERMINAL ARMED"; this.style.borderColor = "#D1D0D0"; }, 1000);
+    };
+
+    document.getElementById('bankSearch').oninput = (e) => {
+        const val = e.target.value.toLowerCase();
+        renderBanks(INDIAN_BANKS.filter(b => b.toLowerCase().includes(val)));
+    };
+
+    window.onresize = initParticles;
+    initParticles();
+    animateParticles();
+    renderBanks(INDIAN_BANKS);
+</script>
+</body>
+</html>
